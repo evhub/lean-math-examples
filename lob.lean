@@ -50,28 +50,28 @@ namespace lob
 
     axiom sur_f: surjective f
 
-    axiom proves_mp:
+    axiom proves.mp:
         ∀ {φ ψ: S0},
         proves (φ → ψ) → proves φ → proves ψ
 
-    axiom proves_implies_trans:
+    axiom proves.implies_trans:
         ∀ {a b c: S0},
         proves (a → b) → proves (b → c) → proves (a → c)
 
-    axiom proves_implies_middleman_elim:
+    axiom proves.implies_middleman_elim:
         ∀ {a b c: S0},
         proves (a → b → c) → proves (a → b) → proves (a → c)
 
-    axiom proves_diag:
+    axiom proves.diag:
         ∀ φ: S1,
         ∃ ψ: S0,
         proves (ψ ↔ f φ (up ψ))
 
-    axiom proves_iff_forward:
+    axiom proves.iff_mp:
         ∀ {a b: S0},
         proves (a ↔ b) → proves (a → b)
 
-    axiom proves_iff_reverse:
+    axiom proves.iff_mpr:
         ∀ {a b: S0},
         proves (a ↔ b) → proves (b → a)
 
@@ -87,33 +87,33 @@ namespace lob
             rfl
 
     theorem lob {ψ: S0} (h0: proves (box ψ → ψ)): proves ψ :=
-        exists.elim (proves_diag (h ψ)) (
+        exists.elim (proves.diag (h ψ)) (
             assume φ: S0,
             assume heq: proves (φ ↔ f (h ψ) (up φ)),
             have h1: proves (φ ↔ (box φ → ψ)),
                 by {simp at heq, exact heq},
             have h1_forward: proves (φ → (box φ → ψ)),
-                from proves_iff_forward h1,
+                from h1.iff_mp,
             have h1_reverse: proves ((box φ → ψ) → φ),
-                from proves_iff_reverse h1,
+                from h1.iff_mpr,
             have h2: proves (box (φ → (box φ → ψ))),
                 from hilbert_bernay.a h1_forward,
             have h3: proves (box φ → box (box φ → ψ)),
-                from proves_mp hilbert_bernay.c h2,
+                from hilbert_bernay.c.mp h2,
             have h4: proves (box φ → box (box φ) → box ψ),
-                from proves_implies_trans h3 hilbert_bernay.c,
+                from h3.implies_trans hilbert_bernay.c,
             have h5: proves (box φ → box (box φ)),
                 from hilbert_bernay.b,
             have h6: proves (box φ → box ψ),
-                from proves_implies_middleman_elim h4 h5,
+                from h4.implies_middleman_elim h5,
             have h7: proves (box φ → ψ),
-                from proves_implies_trans h6 h0,
+                from h6.implies_trans h0,
             have h8: proves φ,
-                from proves_mp h1_reverse h7,
+                from h1_reverse.mp h7,
             have h9: proves (box φ),
                 from hilbert_bernay.a h8,
             show proves ψ,
-                from proves_mp h7 h9
+                from h7.mp h9
         )
 
 

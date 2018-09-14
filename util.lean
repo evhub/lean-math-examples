@@ -1,7 +1,9 @@
 namespace util
+    open function
     open classical (em prop_decidable)
     local attribute [instance] prop_decidable
 
+    -- classical logic:
     @[simp] theorem not_not_elim (P: Prop):
         ¬¬P ↔ P := begin
             apply iff.intro,
@@ -62,5 +64,122 @@ namespace util
                     exact hand.2,
                 },
             },
+        end
+
+
+    -- isempty:
+    @[reducible] def isempty (A: Sort _):
+        Prop := ¬ nonempty A
+
+    theorem isempty.elim {A: Sort _} (h: isempty A) (a: A):
+        ∀ {P: Prop}, P := begin
+            intros,
+            apply false.elim,
+            apply h,
+            split,
+            exact a,
+        end
+
+
+    -- function classes:
+    attribute [class] injective
+    attribute [class] surjective
+    attribute [class] bijective
+
+    instance bijective_of_inj_sur {T T': Sort _} {f: T → T'} [hfi: injective f] [hfs: surjective f]:
+        bijective f := (| hfi, hfs |)
+
+    instance inj_of_bijective {T T': Sort _} {f: T → T'} [hf: bijective f]:
+        injective f := hf.1
+
+    instance sur_of_bijective {T T': Sort _} {f: T → T'} [hf: bijective f]:
+        surjective f := hf.2
+
+
+    -- inverses:
+    class invertible {T T': Sort _} (f: T → T') :=
+        (g: T' → T)
+        (elim:
+            ∀ x: T,
+            g (f x) = x)
+
+    @[reducible, inline] def inv {T T': Sort _} (f: T → T') [hf: invertible f]:
+        T' → T := hf.g
+
+    @[simp] theorem inv.elim {T T': Sort _} (f: T → T') [hf: invertible f]:
+        ∀ x: T,
+        inv f (f x) = x := by apply hf.elim
+
+    instance inv.invertible {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
+        invertible (inv f) := begin
+            split,
+            show T → T', from f,
+            intro x,
+            apply exists.elim (hfsur x),
+            intros y hy,
+            rw [←hy],
+            simp,
+        end
+
+    @[simp] theorem inv.elim_of_inv {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
+        inv (inv f) = f := by rw [inv.invertible]
+
+    theorem inv.uniq {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
+        ∀ {g: T' → T},
+        (∀ x: T, g (f x) = x) →
+        g = inv f := begin
+            intros g hg,
+            funext,
+            have hfsurx := hfsur x,
+            apply exists.elim hfsurx,
+            intros y hy,
+            rw [←hy, hg y],
+            rw [inv, hfinv.elim],
+        end
+
+    instance inv.surjective {T T': Sort _} (f: T → T') [hf: invertible f]:
+        surjective (inv f) := begin
+            intro x,
+            apply exists.intro (f x),
+            simp,
+        end
+
+    instance inv.injective {T T': Sort _} (f: T → T') [hf: invertible f] [hfsur: surjective f]:
+        injective (inv f) := begin
+            intros x y hxy,
+            have hfx := hfsur x,
+            have hfy := hfsur y,
+            apply exists.elim hfx,
+            intros a ha,
+            apply exists.elim hfy,
+            intros b hb,
+            rw [←ha, ←hb] at *,
+            simp at hxy,
+            rw [hxy],
+        end
+
+
+    -- id:
+    instance id.bijective {T: Sort _}:
+        bijective (@id T) := begin
+            split,
+            show injective id, by {
+                intros x y h,
+                simp at h,
+                exact h,
+            },
+            show surjective id, by {
+                intro x,
+                apply exists.intro x,
+                simp,
+            },
+        end
+
+    instance id.invertible {T: Sort _}:
+        invertible (@id T) := begin
+            split,
+            show T → T, from id,
+            intro x,
+            simp,
         end
 end util

@@ -210,18 +210,6 @@ namespace lawvere
 
 
     -- domain/codomain properties:
-    @[reducible] def isempty (A: Sort _):
-        Prop := ¬ nonempty A
-
-    theorem isempty.elim {A: Sort _} (h: isempty A) (a: A):
-        ∀ {P: Prop}, P := begin
-            intros,
-            apply false.elim,
-            apply h,
-            split,
-            exact a,
-        end
-
     def dom_cod_prop (P: Π A B: Sort _, Prop)
         (Ptrans: transitive P)
         (Psemirefl:

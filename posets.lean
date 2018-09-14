@@ -159,25 +159,6 @@ namespace posets
 
 
     -- function classes:
-    attribute [class] injective
-    attribute [class] surjective
-    attribute [class] bijective
-
-    instance bijective_of_inj_sur {T T': Sort _} {f: T → T'} [hfi: injective f] [hfs: surjective f]:
-        bijective f := (| hfi, hfs |)
-
-    instance inj_of_bijective {T T': Sort _} {f: T → T'} [hf: bijective f]:
-        injective f := hf.1
-
-    instance sur_of_bijective {T T': Sort _} {f: T → T'} [hf: bijective f]:
-        surjective f := hf.2
-
-    class invertible {T T': Sort _} (f: T → T') :=
-        (g: T' → T)
-        (elim:
-            ∀ x: T,
-            g (f x) = x)
-
     class increasing {T: Type _} [hT: partial_order T] (f: T → T) :=
         (elim:
             ∀ {x: T},
@@ -201,55 +182,7 @@ namespace posets
             x ≤ y)
 
 
-    -- inverses:
-    @[reducible, inline] def inv {T T': Sort _} (f: T → T') [hf: invertible f]:
-        T' → T := hf.g
-
-    @[simp] theorem inv.elim {T T': Sort _} (f: T → T') [hf: invertible f]:
-        ∀ x: T,
-        inv f (f x) = x := by apply hf.elim
-
-    instance inv.invertible {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
-        invertible (inv f) := begin
-            split,
-            show T → T', from f,
-            intro x,
-            apply exists.elim (hfsur x),
-            intros y hy,
-            rw [←hy],
-            simp,
-        end
-
-    theorem inv.uniq {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
-        ∀ {g: T' → T},
-        (∀ x: T, g (f x) = x) →
-        g = inv f := begin
-            intros g hg,
-            funext,
-            have hfsurx := hfsur x,
-            apply exists.elim hfsurx,
-            intros y hy,
-            rw [←hy, hg y],
-            rw [inv, hfinv.elim],
-        end
-
-
     -- id:
-    instance id.bijective {T: Sort _}:
-        bijective (@id T) := begin
-            split,
-            show injective id, by {
-                intros x y h,
-                simp at h,
-                exact h,
-            },
-            show surjective id, by {
-                intro x,
-                apply exists.intro x,
-                simp,
-            },
-        end
-
     instance id.increasing {T: Type _} [hT: partial_order T]:
         increasing (@id T) := begin
             split,
@@ -278,14 +211,6 @@ namespace posets
             intros x y hid,
             simp at hid,
             exact hid,
-        end
-
-    instance id.invertible {T: Sort _}:
-        invertible (@id T) := begin
-            split,
-            show T → T, from id,
-            intro x,
-            simp,
         end
 
 
