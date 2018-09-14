@@ -48,7 +48,7 @@ namespace lob
     def f (φ: S1) (ψ: S1): S0 :=
         φ (godnum ψ)
 
-    axiom sur_f: surjective f
+    @[instance] axiom f.sur: surjective f
 
     axiom proves.mp:
         ∀ {φ ψ: S0},
