@@ -3,11 +3,12 @@ import .util
 namespace posets
     open function
     open classical (em prop_decidable)
+    open classical (renaming some → unexists) (renaming some_spec → unexists_prop)
     local attribute [instance] prop_decidable
 
     open util
 
-    -- comparable:
+    -- comparability:
     inductive comp {T: Sort _} [hT: partial_order T] (x y: T): Prop
     | le (hle: x ≤ y): comp
     | ge (hge: y ≤ x): comp
@@ -404,7 +405,7 @@ namespace posets
             apply bot_le,
         end
 
-    instance monotone.cod_wf_order_of_sur {T T': Sort _} [hT: wf_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+    instance monotone.cod_wf_of_sur {T T': Sort _} [hT: wf_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
         wf_order T' := begin
             split,
             show T', from f bot,
@@ -450,4 +451,22 @@ namespace posets
 
     instance galois_connection.kernel.monotone {A B: Sort _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
         monotone gc.kernel := by apply @monotone.of_composition B A B hB hA hB gc.G gc.hG gc.F gc.hF
+
+
+    -- trivial or well-founded:
+    def has_bot (T: Sort _) [hT: partial_order T]: Prop :=
+        ∃ bot: T,
+        ∀ x: T,
+        bot ≤ x
+
+    noncomputable instance has_bot.wf {T: Sort _} [hT: partial_order T] (hbot: has_bot T):
+        wf_order T := {
+            bot := unexists hbot,
+            bot_le := unexists_prop hbot,
+            ..hT,
+        }
+
+    inductive triv_or_wf (T: Sort _) [hT: partial_order T]: Prop
+    | triv (htriv: trivially_ordered T): triv_or_wf
+    | wf (hbot: has_bot T): triv_or_wf
 end posets
