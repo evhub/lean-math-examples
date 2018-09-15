@@ -170,6 +170,62 @@ namespace posets
         end
 
 
+    -- trivial order:
+    @[reducible] def trivially_ordered (T: Sort _) [hT: partial_order T]: Prop :=
+        ∀ {x y: T},
+        x ≤ y → x = y
+
+    @[simp] theorem trivially_ordered.elim {T: Sort _} [hT: partial_order T] (htriv: trivially_ordered T):
+        ∀ {x y: T},
+        x ≤ y ↔ x = y := begin
+            intros,
+            apply iff.intro,
+            {
+                intro h,
+                exact htriv h,
+            },
+            {
+                intro h,
+                rw [h],
+            },
+        end
+
+    @[simp] theorem trivially_ordered.of_has_bot {T: Sort _} [hTbot: has_bot T] (htriv: trivially_ordered T):
+        ∀ {x: T},
+        x = bot := begin
+            intros,
+            symmetry,
+            apply htriv,
+            apply bot_le,
+        end
+
+    -- not marked as instance to avoid automatically trivially ordering everything
+    def trivial_ordering (T: Sort _):
+        partial_order T := {
+            le := eq,
+            le_refl := begin
+                intros,
+                refl,
+            end,
+            le_trans := begin
+                intros x y z hxy hyz,
+                rw [hxy, ←hyz],
+            end,
+            le_antisymm := begin
+                intros,
+                assumption,
+            end,
+        }
+
+    theorem trivial_ordering.is_triv (T: Sort _):
+        @trivially_ordered T (trivial_ordering T) := begin
+            intros x y,
+            intro hxy,
+            cases hxy,
+            refl,
+        end
+
+
     -- min:
     noncomputable def or_else {T: Sort _} [hT: has_bot T] (x y: T):
         T := if x = bot then y else x
