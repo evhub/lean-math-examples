@@ -144,7 +144,7 @@ namespace util
             simp,
         end
 
-    instance inv.injective {T T': Sort _} (f: T → T') [hf: invertible f] [hfsur: surjective f]:
+    instance inv.injective {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
         injective (inv f) := begin
             intros x y hxy,
             have hfx := hfsur x,
@@ -182,4 +182,32 @@ namespace util
             intro x,
             simp,
         end
+
+
+    -- cast:
+    @[simp] theorem cast_cast_elim {T T': Sort _} {x: T} (h: T = T') (h': T' = T):
+        cast h' (cast h x) = x := begin
+            cases h,
+            refl,
+        end
+
+    theorem cast_eq_of_heq {T T': Sort _} {x: T} {x': T'}:
+    x == x' →
+    Σ' h: T = T',
+    cast h x = x' := begin
+        intro h,
+        cases h,
+        split,
+        refl,
+        refl,
+    end
+
+    theorem heq_of_cast_eq {T T': Sort _} {x: T} {x': T'} {h: T = T'}:
+    cast h x = x' →
+    x == x' := begin
+        intro hcast,
+        cases h,
+        cases hcast,
+        refl,
+    end
 end util

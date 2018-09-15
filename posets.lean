@@ -8,61 +8,130 @@ namespace posets
     open util
 
     -- comparable:
-    inductive comparable {T: Type _} [hT: partial_order T] (x y: T): Prop
-    | is_le: x ≤ y → comparable
-    | swap_le: y ≤ x → comparable
-    open comparable
+    inductive comp {T: Sort _} [hT: partial_order T] (x y: T): Prop
+    | le (hle: x ≤ y): comp
+    | ge (hge: y ≤ x): comp
 
-    theorem le_of_not_lt {T: Type _} [hT: partial_order T] {x y: T} (hxy: comparable x y):
+    infix ` <=> `:60 := comp
+
+    @[refl] theorem comp.refl {T: Sort _} [hT: partial_order T] (x: T):
+        x <=> x := begin
+            apply comp.le,
+            refl,
+        end
+
+    @[symm] theorem comp.symm {T: Sort _} [hT: partial_order T] {x y: T}:
+        x <=> y →
+        y <=> x := begin
+            intro hcomp,
+            induction hcomp,
+            case comp.le {
+                apply comp.ge,
+                exact hcomp,
+            },
+            case comp.ge {
+                apply comp.le,
+                exact hcomp,
+            },
+        end
+
+    theorem le_of_not_lt {T: Sort _} [hT: partial_order T] {x y: T} (hcomp: x <=> y):
         ¬ x < y →
         y ≤ x := begin
             intro hnlt,
-            cases hxy,
-            case is_le {
-                rw [le_iff_lt_or_eq] at hxy,
-                cases hxy,
+            cases hcomp,
+            case comp.le {
+                rw [le_iff_lt_or_eq] at hcomp,
+                cases hcomp,
                 case or.inl {
                     contradiction,
                 },
                 case or.inr {
-                    rw [hxy],
+                    rw [hcomp],
                 },
             },
-            case swap_le {
-                exact hxy,
+            case comp.ge {
+                exact hcomp,
             },
         end
 
-    theorem lt_of_not_le {T: Type _} [hT: partial_order T] {x y: T} (hxy: comparable x y):
+    theorem lt_of_not_le {T: Sort _} [hT: partial_order T] {x y: T} (hcomp: x <=> y):
         ¬ x ≤ y →
         y < x := begin
             intro hnlt,
-            cases hxy,
-            case is_le {
+            cases hcomp,
+            case comp.le {
                 contradiction,
             },
-            case swap_le {
+            case comp.ge {
                 by_contra hnlt,
-                have hyx: comparable y x := is_le hxy,
+                have hyx: comp y x := comp.le hcomp,
                 have hle := le_of_not_lt hyx hnlt,
                 contradiction,
             },
         end
 
 
+    -- connectedness:
+    inductive con {T: Sort _} [hT: partial_order T]: T → T → Prop
+    | le {x y: T} (hle: x ≤ y): con x y
+    | ge {x y: T} (hge: y ≤ x): con x y
+    | trans {x y z: T} (hxy: con x y) (hyz: con y z): con x z
+
+    infix ` ~ ` := con
+
+    @[refl] theorem con.refl {T: Sort _} [hT: partial_order T] (x: T):
+        x ~ x := begin
+            intros,
+            apply con.le,
+            refl,
+        end
+
+    @[symm] theorem con.symm {T: Sort _} [hT: partial_order T] {x y: T}:
+        x ~ y →
+        y ~ x := begin
+            intro hcon,
+            induction hcon,
+            case con.le {
+                apply con.ge,
+                assumption,
+            },
+            case con.ge {
+                apply con.le,
+                assumption,
+            },
+            case con.trans {
+                exact con.trans hcon_ih_hyz hcon_ih_hxy,
+            },
+        end
+
+    theorem comp.con {T: Sort _} [hT: partial_order T] {x y: T} (hcomp: x <=> y):
+        x ~ y := begin
+            induction hcomp,
+            case comp.le {
+                apply con.le,
+                exact hcomp,
+            },
+            case comp.ge {
+                apply con.ge,
+                exact hcomp,
+            },
+        end
+
+
     -- bot:
-    class has_bot (T: Type _) extends partial_order T :=
+    class has_bot (T: Sort _) extends partial_order T :=
         (bot: T)
         (bot_le: ∀ x: T, bot ≤ x)
 
-    @[reducible, inline] def bot {T: Type _} [hT: has_bot T] := hT.bot
+    @[reducible, inline] def bot {T: Sort _} [hT: has_bot T] := hT.bot
 
-    @[reducible, inline] def bot_le {T: Type _} [hT: has_bot T] := hT.bot_le
+    @[reducible, inline] def bot_le {T: Sort _} [hT: has_bot T] := hT.bot_le
 
-    instance has_bot.inhabited {T: Type _} [hT: has_bot T]:
+    instance has_bot.inhabited {T: Sort _} [hT: has_bot T]:
         inhabited T := (| bot |)
 
-    theorem bot_uniq {T: Type _} [hT: has_bot T]:
+    theorem bot_uniq {T: Sort _} [hT: has_bot T]:
         ∀ bot': T,
         (∀ x: T, bot' ≤ x) →
         bot' = bot := begin
@@ -72,7 +141,7 @@ namespace posets
             apply bot_le,
         end
 
-    theorem bot_ne_elim {T: Type _} [hT: has_bot T] {x: T}:
+    theorem bot_ne_elim {T: Sort _} [hT: has_bot T] {x: T}:
         x ≠ bot →
         ∃ y: T,
         ¬ x ≤ y := begin
@@ -87,14 +156,27 @@ namespace posets
             exact hy,
         end
 
+    theorem con.all_of_bot {T: Sort _} [hT: has_bot T] {x y: T}:
+        x ~ y := begin
+            have hx: x ~ bot, by {
+                apply con.ge,
+                apply bot_le,
+            },
+            have hy: bot ~ y, by {
+                apply con.le,
+                apply bot_le,
+            },
+            exact con.trans hx hy,
+        end
+
 
     -- min:
-    noncomputable def or_else {T: Type _} [hT: has_bot T] (x y: T):
+    noncomputable def or_else {T: Sort _} [hT: has_bot T] (x y: T):
         T := if x = bot then y else x
 
     infix ` ?? `:60 := or_else
 
-    theorem or_else.le_refl {T: Type _} [hT: has_bot T] {x y: T}:
+    theorem or_else.le_refl {T: Sort _} [hT: has_bot T] {x y: T}:
         x ≤ x ?? y := begin
             rw [or_else],
             cases em (x = bot),
@@ -107,7 +189,7 @@ namespace posets
             },
         end
 
-    theorem or_else.le_of_le {T: Type _} [hT: has_bot T] {x y: T}:
+    theorem or_else.le_of_le {T: Sort _} [hT: has_bot T] {x y: T}:
         x ≤ y →
         x ≤ y ?? x := begin
             intro hle,
@@ -124,12 +206,12 @@ namespace posets
 
 
     -- max:
-    noncomputable def and_then {T: Type _} [hT: has_bot T] (x y: T):
+    noncomputable def and_then {T: Sort _} [hT: has_bot T] (x y: T):
         T := if x = bot then x else y
 
     infix ` >> `:60 := and_then
 
-    theorem and_then.le_refl {T: Type _} [hT: has_bot T] {x y: T}:
+    theorem and_then.le_refl {T: Sort _} [hT: has_bot T] {x y: T}:
         y >> x ≤ x := begin
             rw [and_then],
             cases em (y = bot),
@@ -142,7 +224,7 @@ namespace posets
             },
         end
 
-    theorem and_then.le_of_le {T: Type _} [hT: has_bot T] {x y: T}:
+    theorem and_then.le_of_le {T: Sort _} [hT: has_bot T] {x y: T}:
         x ≤ y →
         y >> x ≤ y := begin
             intro hle,
@@ -159,23 +241,23 @@ namespace posets
 
 
     -- function classes:
-    class increasing {T: Type _} [hT: partial_order T] (f: T → T) :=
+    class increasing {T: Sort _} [hT: partial_order T] (f: T → T) :=
         (elim:
             ∀ {x: T},
             x ≤ f x)
 
-    class decreasing {T: Type _} [hT: partial_order T] (f: T → T) :=
+    class decreasing {T: Sort _} [hT: partial_order T] (f: T → T) :=
         (elim:
             ∀ {x: T},
             f x ≤ x)
 
-    class monotone {T T': Type _} [hT: partial_order T] [hT': partial_order T'] (f: T → T') :=
+    class monotone {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] (f: T → T') :=
         (elim:
             ∀ {x y: T},
             x ≤ y →
             f x ≤ f y)
 
-    class antitone {T T': Type _} [hT: partial_order T] [hT': partial_order T'] (f: T → T') :=
+    class antitone {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] (f: T → T') :=
         (elim:
             ∀ {x y: T},
             f x ≤ f y →
@@ -183,21 +265,21 @@ namespace posets
 
 
     -- id:
-    instance id.increasing {T: Type _} [hT: partial_order T]:
+    instance id.increasing {T: Sort _} [hT: partial_order T]:
         increasing (@id T) := begin
             split,
             intro x,
             simp,
         end
 
-    instance id.decreasing {T: Type _} [hT: partial_order T]:
+    instance id.decreasing {T: Sort _} [hT: partial_order T]:
         decreasing (@id T) := begin
             split,
             intro x,
             simp,
         end
 
-    instance id.monotone {T: Type _} [hT: partial_order T]:
+    instance id.monotone {T: Sort _} [hT: partial_order T]:
         monotone (@id T) := begin
             split,
             intros x y hxy,
@@ -205,7 +287,7 @@ namespace posets
             exact hxy,
         end
 
-    instance id.antitone {T: Type _} [hT: partial_order T]:
+    instance id.antitone {T: Sort _} [hT: partial_order T]:
         antitone (@id T) := begin
             split,
             intros x y hid,
@@ -215,7 +297,46 @@ namespace posets
 
 
     -- monotonicity:
-    @[simp] theorem monotone.bot_to_bot_of_sur {T T': Type _} [hT: has_bot T] [hT': has_bot T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+    theorem monotone.of_comp {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] {f: T → T'} [hf: monotone f]:
+        ∀ {x y: T},
+        x <=> y →
+        f x <=> f y := begin
+            intros x y hcomp,
+            induction hcomp,
+            case comp.le {
+                apply comp.le,
+                apply hf.elim,
+                exact hcomp,
+            },
+            case comp.ge {
+                apply comp.ge,
+                apply hf.elim,
+                exact hcomp,
+            },
+        end
+
+    theorem monotone.of_con {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] {f: T → T'} [hf: monotone f]:
+        ∀ {x y: T},
+        x ~ y →
+        f x ~ f y := begin
+            intros x y hcon,
+            induction hcon,
+            case con.le {
+                apply con.le,
+                apply hf.elim,
+                assumption,
+            },
+            case con.ge {
+                apply con.ge,
+                apply hf.elim,
+                assumption,
+            },
+            case con.trans {
+                exact con.trans hcon_ih_hxy hcon_ih_hyz,
+            },
+        end
+
+    @[simp] theorem monotone.bot_to_bot_of_sur {T T': Sort _} [hT: has_bot T] [hT': has_bot T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
         f bot = bot := begin
             apply bot_uniq,
             intro x,
@@ -227,7 +348,7 @@ namespace posets
             apply bot_le,
         end
 
-    instance monotone.cod_has_bot_of_sur {T T': Type _} [hT: has_bot T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+    instance monotone.cod_has_bot_of_sur {T T': Sort _} [hT: has_bot T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
         has_bot T' := begin
             split,
             show T', from f bot,
@@ -240,7 +361,7 @@ namespace posets
             apply bot_le,
         end
 
-    instance monotone.of_comp {T T' T'': Type _} [hT: partial_order T] [hT': partial_order T'] [hT'': partial_order T''] (g: T → T') [hg: monotone g] (f: T' → T'') [hf: monotone f]:
+    instance monotone.of_comp {T T' T'': Sort _} [hT: partial_order T] [hT': partial_order T'] [hT'': partial_order T''] (g: T → T') [hg: monotone g] (f: T' → T'') [hf: monotone f]:
         monotone (f ∘ g) := begin
             split,
             intros x y hxy,
@@ -252,7 +373,7 @@ namespace posets
 
 
     -- galois connections:
-    structure galois_connection (A B: Type _) [hA: partial_order A] [hB: partial_order B] :=
+    structure galois_connection (A B: Sort _) [hA: partial_order A] [hB: partial_order B] :=
         (F: A → B)
         [hF: monotone F]
         (G: B → A)
@@ -262,15 +383,15 @@ namespace posets
             F a ≤ b ↔
             a ≤ G b)
 
-    def galois_connection.closure {A B: Type _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
+    def galois_connection.closure {A B: Sort _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
         A → A := gc.G ∘ gc.F
 
-    instance galois_connection.closure.monotone {A B: Type _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
+    instance galois_connection.closure.monotone {A B: Sort _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
         monotone gc.closure := by apply @monotone.of_comp A B A hA hB hA gc.F gc.hF gc.G gc.hG
 
-    def galois_connection.kernel {A B: Type _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
+    def galois_connection.kernel {A B: Sort _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
         B → B := gc.F ∘ gc.G
 
-    instance galois_connection.kernel.monotone {A B: Type _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
+    instance galois_connection.kernel.monotone {A B: Sort _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
         monotone gc.kernel := by apply @monotone.of_comp B A B hB hA hB gc.G gc.hG gc.F gc.hF
 end posets
