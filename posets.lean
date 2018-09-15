@@ -12,7 +12,7 @@ namespace posets
     | le (hle: x ≤ y): comp
     | ge (hge: y ≤ x): comp
 
-    infix ` <=> `:60 := comp
+    infix ` <=> `:50 := comp
 
     @[refl] theorem comp.refl {T: Sort _} [hT: partial_order T] (x: T):
         x <=> x := begin
@@ -78,7 +78,7 @@ namespace posets
     | ge {x y: T} (hge: y ≤ x): con x y
     | trans {x y z: T} (hxy: con x y) (hyz: con y z): con x z
 
-    infix ` ~ ` := con
+    infix ` ~ `:50 := con
 
     @[refl] theorem con.refl {T: Sort _} [hT: partial_order T] (x: T):
         x ~ x := begin
