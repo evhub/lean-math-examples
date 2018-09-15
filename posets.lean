@@ -119,19 +119,19 @@ namespace posets
         end
 
 
-    -- bot:
-    class has_bot (T: Sort _) extends partial_order T :=
+    -- well-founded order:
+    class wf_order (T: Sort _) extends partial_order T :=
         (bot: T)
         (bot_le: ∀ x: T, bot ≤ x)
 
-    @[reducible, inline] def bot {T: Sort _} [hT: has_bot T] := hT.bot
+    @[reducible, inline] def bot {T: Sort _} [hT: wf_order T] := hT.bot
 
-    @[reducible, inline] def bot_le {T: Sort _} [hT: has_bot T] := hT.bot_le
+    @[reducible, inline] def bot_le {T: Sort _} [hT: wf_order T] := hT.bot_le
 
-    instance has_bot.inhabited {T: Sort _} [hT: has_bot T]:
+    instance wf_order.inhabited {T: Sort _} [hT: wf_order T]:
         inhabited T := (| bot |)
 
-    theorem bot_uniq {T: Sort _} [hT: has_bot T]:
+    theorem bot_uniq {T: Sort _} [hT: wf_order T]:
         ∀ bot': T,
         (∀ x: T, bot' ≤ x) →
         bot' = bot := begin
@@ -141,7 +141,7 @@ namespace posets
             apply bot_le,
         end
 
-    theorem bot_ne_elim {T: Sort _} [hT: has_bot T] {x: T}:
+    theorem bot_ne_elim {T: Sort _} [hT: wf_order T] {x: T}:
         x ≠ bot →
         ∃ y: T,
         ¬ x ≤ y := begin
@@ -156,7 +156,7 @@ namespace posets
             exact hy,
         end
 
-    theorem con.all_of_bot {T: Sort _} [hT: has_bot T] {x y: T}:
+    theorem con.all_of_bot {T: Sort _} [hT: wf_order T] {x y: T}:
         x ~ y := begin
             have hx: x ~ bot, by {
                 apply con.ge,
@@ -190,7 +190,7 @@ namespace posets
             },
         end
 
-    @[simp] theorem trivially_ordered.of_has_bot {T: Sort _} [hTbot: has_bot T] (htriv: trivially_ordered T):
+    @[simp] theorem trivially_ordered.of_wf {T: Sort _} [hT: wf_order T] (htriv: trivially_ordered T):
         ∀ {x: T},
         x = bot := begin
             intros,
@@ -227,12 +227,12 @@ namespace posets
 
 
     -- min:
-    noncomputable def or_else {T: Sort _} [hT: has_bot T] (x y: T):
+    noncomputable def or_else {T: Sort _} [hT: wf_order T] (x y: T):
         T := if x = bot then y else x
 
     infix ` ?? `:60 := or_else
 
-    theorem or_else.le_refl {T: Sort _} [hT: has_bot T] {x y: T}:
+    theorem or_else.le_refl {T: Sort _} [hT: wf_order T] {x y: T}:
         x ≤ x ?? y := begin
             rw [or_else],
             cases em (x = bot),
@@ -245,7 +245,7 @@ namespace posets
             },
         end
 
-    theorem or_else.le_of_le {T: Sort _} [hT: has_bot T] {x y: T}:
+    theorem or_else.le_of_le {T: Sort _} [hT: wf_order T] {x y: T}:
         x ≤ y →
         x ≤ y ?? x := begin
             intro hle,
@@ -262,12 +262,12 @@ namespace posets
 
 
     -- max:
-    noncomputable def and_then {T: Sort _} [hT: has_bot T] (x y: T):
+    noncomputable def and_then {T: Sort _} [hT: wf_order T] (x y: T):
         T := if x = bot then x else y
 
     infix ` >> `:60 := and_then
 
-    theorem and_then.le_refl {T: Sort _} [hT: has_bot T] {x y: T}:
+    theorem and_then.le_refl {T: Sort _} [hT: wf_order T] {x y: T}:
         y >> x ≤ x := begin
             rw [and_then],
             cases em (y = bot),
@@ -280,7 +280,7 @@ namespace posets
             },
         end
 
-    theorem and_then.le_of_le {T: Sort _} [hT: has_bot T] {x y: T}:
+    theorem and_then.le_of_le {T: Sort _} [hT: wf_order T] {x y: T}:
         x ≤ y →
         y >> x ≤ y := begin
             intro hle,
@@ -353,7 +353,7 @@ namespace posets
 
 
     -- monotonicity:
-    theorem monotone.of_comp {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] {f: T → T'} [hf: monotone f]:
+    theorem monotone.of_comparable {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] {f: T → T'} [hf: monotone f]:
         ∀ {x y: T},
         x <=> y →
         f x <=> f y := begin
@@ -392,7 +392,7 @@ namespace posets
             },
         end
 
-    @[simp] theorem monotone.bot_to_bot_of_sur {T T': Sort _} [hT: has_bot T] [hT': has_bot T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+    @[simp] theorem monotone.bot_to_bot_of_sur {T T': Sort _} [hT: wf_order T] [hT': wf_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
         f bot = bot := begin
             apply bot_uniq,
             intro x,
@@ -404,8 +404,8 @@ namespace posets
             apply bot_le,
         end
 
-    instance monotone.cod_has_bot_of_sur {T T': Sort _} [hT: has_bot T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
-        has_bot T' := begin
+    instance monotone.cod_wf_order_of_sur {T T': Sort _} [hT: wf_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+        wf_order T' := begin
             split,
             show T', from f bot,
             intro x,
@@ -417,7 +417,7 @@ namespace posets
             apply bot_le,
         end
 
-    instance monotone.of_comp {T T' T'': Sort _} [hT: partial_order T] [hT': partial_order T'] [hT'': partial_order T''] (g: T → T') [hg: monotone g] (f: T' → T'') [hf: monotone f]:
+    instance monotone.of_composition {T T' T'': Sort _} [hT: partial_order T] [hT': partial_order T'] [hT'': partial_order T''] (g: T → T') [hg: monotone g] (f: T' → T'') [hf: monotone f]:
         monotone (f ∘ g) := begin
             split,
             intros x y hxy,
@@ -443,11 +443,11 @@ namespace posets
         A → A := gc.G ∘ gc.F
 
     instance galois_connection.closure.monotone {A B: Sort _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
-        monotone gc.closure := by apply @monotone.of_comp A B A hA hB hA gc.F gc.hF gc.G gc.hG
+        monotone gc.closure := by apply @monotone.of_composition A B A hA hB hA gc.F gc.hF gc.G gc.hG
 
     def galois_connection.kernel {A B: Sort _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
         B → B := gc.F ∘ gc.G
 
     instance galois_connection.kernel.monotone {A B: Sort _} [hA: partial_order A] [hB: partial_order B] (gc: galois_connection A B):
-        monotone gc.kernel := by apply @monotone.of_comp B A B hB hA hB gc.G gc.hG gc.F gc.hF
+        monotone gc.kernel := by apply @monotone.of_composition B A B hB hA hB gc.G gc.hG gc.F gc.hF
 end posets
