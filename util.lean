@@ -1,6 +1,7 @@
 namespace util
     open function
     open classical (em prop_decidable)
+    open classical (renaming some → unexists) (renaming some_spec → unexists_prop)
     local attribute [instance] prop_decidable
 
     -- classical logic:
@@ -157,6 +158,34 @@ namespace util
             simp at hxy,
             rw [hxy],
         end
+
+    noncomputable def inj_inv {T T': Sort _} [hT: nonempty T] (f: T → T') (y: T'): T :=
+        if h: ∃ x: T, f x = y then
+            unexists h
+        else
+            choice hT
+
+    noncomputable instance inj_inv.inv_of_inj{T T': Sort _} [hT: nonempty T] (f: T → T') [hf: injective f]:
+        invertible f := {
+            g := inj_inv f,
+            elim := begin
+                intros,
+                rw [inj_inv],
+                cases em (∃ (x' : T), f x' = f x),
+                case or.inl {
+                    rw [dif_pos h],
+                    apply hf,
+                    exact unexists_prop h,
+                },
+                case or.inr {
+                    rw [dif_neg h],
+                    apply false.elim,
+                    apply h,
+                    apply exists.intro x,
+                    refl,
+                },
+            end,
+        }
 
 
     -- id:

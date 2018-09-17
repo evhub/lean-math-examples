@@ -120,19 +120,19 @@ namespace posets
         end
 
 
-    -- well-founded order:
-    class wf_order (T: Sort _) extends partial_order T :=
+    -- order with bottom:
+    class bot_order (T: Sort _) extends partial_order T :=
         (bot: T)
         (bot_le: ∀ x: T, bot ≤ x)
 
-    @[reducible, inline] def bot {T: Sort _} [hT: wf_order T] := hT.bot
+    @[reducible, inline] def bot {T: Sort _} [hT: bot_order T] := hT.bot
 
-    @[reducible, inline] def bot_le {T: Sort _} [hT: wf_order T] := hT.bot_le
+    @[reducible, inline] def bot_le {T: Sort _} [hT: bot_order T] := hT.bot_le
 
-    instance wf_order.inhabited {T: Sort _} [hT: wf_order T]:
+    instance bot_order.inhabited {T: Sort _} [hT: bot_order T]:
         inhabited T := (| bot |)
 
-    theorem bot_uniq {T: Sort _} [hT: wf_order T]:
+    theorem bot_uniq {T: Sort _} [hT: bot_order T]:
         ∀ bot': T,
         (∀ x: T, bot' ≤ x) →
         bot' = bot := begin
@@ -142,7 +142,7 @@ namespace posets
             apply bot_le,
         end
 
-    theorem bot_ne_elim {T: Sort _} [hT: wf_order T] {x: T}:
+    theorem bot_ne_elim {T: Sort _} [hT: bot_order T] {x: T}:
         x ≠ bot →
         ∃ y: T,
         ¬ x ≤ y := begin
@@ -157,7 +157,7 @@ namespace posets
             exact hy,
         end
 
-    theorem con.all_of_bot {T: Sort _} [hT: wf_order T] {x y: T}:
+    theorem con.all_of_bot {T: Sort _} [hT: bot_order T] {x y: T}:
         x ~ y := begin
             have hx: x ~ bot, by {
                 apply con.ge,
@@ -191,7 +191,7 @@ namespace posets
             },
         end
 
-    @[simp] theorem trivially_ordered.of_wf {T: Sort _} [hT: wf_order T] (htriv: trivially_ordered T):
+    @[simp] theorem trivially_ordered.of_bot {T: Sort _} [hT: bot_order T] (htriv: trivially_ordered T):
         ∀ {x: T},
         x = bot := begin
             intros,
@@ -228,12 +228,12 @@ namespace posets
 
 
     -- min:
-    noncomputable def or_else {T: Sort _} [hT: wf_order T] (x y: T):
+    noncomputable def or_else {T: Sort _} [hT: bot_order T] (x y: T):
         T := if x = bot then y else x
 
     infix ` ?? `:60 := or_else
 
-    theorem or_else.le_refl {T: Sort _} [hT: wf_order T] {x y: T}:
+    theorem or_else.le_refl {T: Sort _} [hT: bot_order T] {x y: T}:
         x ≤ x ?? y := begin
             rw [or_else],
             cases em (x = bot),
@@ -246,7 +246,7 @@ namespace posets
             },
         end
 
-    theorem or_else.le_of_le {T: Sort _} [hT: wf_order T] {x y: T}:
+    theorem or_else.le_of_le {T: Sort _} [hT: bot_order T] {x y: T}:
         x ≤ y →
         x ≤ y ?? x := begin
             intro hle,
@@ -263,12 +263,12 @@ namespace posets
 
 
     -- max:
-    noncomputable def and_then {T: Sort _} [hT: wf_order T] (x y: T):
+    noncomputable def and_then {T: Sort _} [hT: bot_order T] (x y: T):
         T := if x = bot then x else y
 
     infix ` >> `:60 := and_then
 
-    theorem and_then.le_refl {T: Sort _} [hT: wf_order T] {x y: T}:
+    theorem and_then.le_refl {T: Sort _} [hT: bot_order T] {x y: T}:
         y >> x ≤ x := begin
             rw [and_then],
             cases em (y = bot),
@@ -281,7 +281,7 @@ namespace posets
             },
         end
 
-    theorem and_then.le_of_le {T: Sort _} [hT: wf_order T] {x y: T}:
+    theorem and_then.le_of_le {T: Sort _} [hT: bot_order T] {x y: T}:
         x ≤ y →
         y >> x ≤ y := begin
             intro hle,
@@ -393,7 +393,7 @@ namespace posets
             },
         end
 
-    @[simp] theorem monotone.bot_to_bot_of_sur {T T': Sort _} [hT: wf_order T] [hT': wf_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+    @[simp] theorem monotone.bot_to_bot_of_sur {T T': Sort _} [hT: bot_order T] [hT': bot_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
         f bot = bot := begin
             apply bot_uniq,
             intro x,
@@ -405,8 +405,8 @@ namespace posets
             apply bot_le,
         end
 
-    instance monotone.cod_wf_of_sur {T T': Sort _} [hT: wf_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
-        wf_order T' := begin
+    instance monotone.cod_bot_of_sur {T T': Sort _} [hT: bot_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+        bot_order T' := begin
             split,
             show T', from f bot,
             intro x,
@@ -459,14 +459,14 @@ namespace posets
         ∀ x: T,
         bot ≤ x
 
-    noncomputable instance has_bot.wf {T: Sort _} [hT: partial_order T] (hbot: has_bot T):
-        wf_order T := {
+    noncomputable instance has_bot.bot_order {T: Sort _} [hT: partial_order T] (hbot: has_bot T):
+        bot_order T := {
             bot := unexists hbot,
             bot_le := unexists_prop hbot,
             ..hT,
         }
 
-    inductive triv_or_wf (T: Sort _) [hT: partial_order T]: Prop
-    | triv (htriv: trivially_ordered T): triv_or_wf
-    | wf (hbot: has_bot T): triv_or_wf
+    inductive triv_or_bot (T: Sort _) [hT: partial_order T]: Prop
+    | triv (htriv: trivially_ordered T): triv_or_bot
+    | bot (hbot: has_bot T): triv_or_bot
 end posets
