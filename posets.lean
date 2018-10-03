@@ -469,4 +469,58 @@ namespace posets
     inductive triv_or_bot (T: Sort _) [hT: partial_order T]: Prop
     | triv (htriv: trivially_ordered T): triv_or_bot
     | bot (hbot: has_bot T): triv_or_bot
+
+
+    -- lower bounds:
+    @[reducible] def lower_bound {T: Sort _} [ht: partial_order T] (lb: T) (s: set T): Prop :=
+        ∀ x: T,
+        x ∈ s →
+        lb ≤ x
+
+    infix ≤ := lower_bound
+
+    class bounded_below {T: Sort _} [hT: partial_order T] (s: set T) :=
+        (elim:
+            ∃ lb: T,
+            lb ≤ s)
+
+    instance bounded_below.of_bot {T: Sort _} [hT: bot_order T] (s: set T):
+        bounded_below s := begin
+            split,
+            apply exists.intro bot,
+            intros x hx,
+            apply bot_le,
+        end
+
+    class glb_prop (T: Sort _) extends partial_order T :=
+        (has_glb:
+            ∀ s: set T,
+            ∃ glb: T,
+            glb ≤ s ∧
+            ∀ x: T,
+            x ≤ s →
+            x ≤ glb)
+
+    noncomputable def inf {T: Sort _} [hT: glb_prop T] (s: set T): T :=
+        unexists (glb_prop.has_glb s)
+
+    theorem inf_le {T: Sort _} [hT: glb_prop T] {s: set T}:
+        inf s ≤ s :=
+            (unexists_prop (glb_prop.has_glb s)).1
+
+    theorem inf_glb {T: Sort _} [hT: glb_prop T] {s: set T}:
+        ∀ x: T,
+        x ≤ s →
+        x ≤ inf s :=
+            (unexists_prop (glb_prop.has_glb s)).2
+
+    noncomputable instance glb_prop.bot_order {T: Sort _} [hT: glb_prop T]:
+        bot_order T := begin
+            let s := {x: T | true},
+            split,
+            show T, from inf s,
+            intros,
+            apply inf_le,
+            split,
+        end
 end posets
