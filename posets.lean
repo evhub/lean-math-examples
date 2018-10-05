@@ -492,35 +492,35 @@ namespace posets
             apply bot_le,
         end
 
+    noncomputable instance bounded_below.bot_of_bounded_univ {T: Sort _} [hT: partial_order T] [hs: bounded_below {x: T | true}]:
+        bot_order T := begin
+            split,
+            show T, from unexists hs.elim,
+            intros,
+            apply unexists_prop hs.elim,
+            split,
+        end
+
     class glb_prop (T: Sort _) extends partial_order T :=
         (has_glb:
             ∀ s: set T,
+            ∀ [hs: bounded_below s],
             ∃ glb: T,
             glb ≤ s ∧
             ∀ x: T,
             x ≤ s →
             x ≤ glb)
 
-    noncomputable def inf {T: Sort _} [hT: glb_prop T] (s: set T): T :=
+    noncomputable def inf {T: Sort _} [hT: glb_prop T] (s: set T) [hs: bounded_below s]: T :=
         unexists (glb_prop.has_glb s)
 
-    theorem inf_le {T: Sort _} [hT: glb_prop T] {s: set T}:
+    theorem inf_le {T: Sort _} [hT: glb_prop T] {s: set T} [hs: bounded_below s]:
         inf s ≤ s :=
             (unexists_prop (glb_prop.has_glb s)).1
 
-    theorem inf_glb {T: Sort _} [hT: glb_prop T] {s: set T}:
+    theorem inf_glb {T: Sort _} [hT: glb_prop T] {s: set T} [hs: bounded_below s]:
         ∀ x: T,
         x ≤ s →
         x ≤ inf s :=
             (unexists_prop (glb_prop.has_glb s)).2
-
-    noncomputable instance glb_prop.bot_order {T: Sort _} [hT: glb_prop T]:
-        bot_order T := begin
-            let s := {x: T | true},
-            split,
-            show T, from inf s,
-            intros,
-            apply inf_le,
-            split,
-        end
 end posets
