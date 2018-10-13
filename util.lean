@@ -1,7 +1,17 @@
 namespace util
-    open function
+    open function nat
     open classical (em prop_decidable)
     local attribute [instance] prop_decidable
+
+    -- nat:
+    @[simp] theorem le_zero_elim {n: nat}:
+        n ≤ 0 ↔ n = 0 := begin
+            apply iff.intro,
+            apply eq_zero_of_le_zero,
+            intro h0,
+            rw [h0],
+        end
+
 
     -- classical logic:
     @[simp] theorem not_not_elim (P: Prop):
