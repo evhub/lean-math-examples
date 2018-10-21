@@ -300,30 +300,30 @@ namespace posets
 
 
     -- function classes:
-    class increasing {T: Sort _} [hT: partial_order T] (f: T → T) :=
+    class increasing {T: Sort _} [hT: partial_order T] (f: T → T): Prop :=
         (elim:
             ∀ {x: T},
             x ≤ f x)
 
-    class decreasing {T: Sort _} [hT: partial_order T] (f: T → T) :=
+    class decreasing {T: Sort _} [hT: partial_order T] (f: T → T): Prop :=
         (elim:
             ∀ {x: T},
             f x ≤ x)
 
-    class monotone {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] (f: T → T') :=
+    class monotone {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] (f: T → T'): Prop :=
         (elim:
             ∀ {x y: T},
             x ≤ y →
             f x ≤ f y)
 
-    class antitone {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] (f: T → T') :=
+    class antitone {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] (f: T → T'): Prop :=
         (elim:
             ∀ {x y: T},
             f x ≤ f y →
             x ≤ y)
 
 
-    -- id:
+    -- examples:
     instance id.increasing {T: Sort _} [hT: partial_order T]:
         increasing (@id T) := begin
             split,
@@ -352,6 +352,14 @@ namespace posets
             intros x y hid,
             simp at hid,
             exact hid,
+        end
+
+    instance nat.succ.monotone:
+        monotone nat.succ := begin
+            split,
+            intros,
+            apply nat.succ_le_succ,
+            assumption,
         end
 
 
@@ -407,7 +415,7 @@ namespace posets
             apply bot_le,
         end
 
-    instance monotone.cod_bot_of_sur {T T': Sort _} [hT: bot_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+    theorem monotone.cod_bot_of_sur {T T': Sort _} [hT: bot_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
         bot_order T' := begin
             split,
             show T', from f bot,
@@ -461,7 +469,7 @@ namespace posets
         ∀ x: T,
         bot ≤ x
 
-    noncomputable instance has_bot.bot_order {T: Sort _} [hT: partial_order T] (hbot: has_bot T):
+    noncomputable theorem has_bot.bot_order {T: Sort _} [hT: partial_order T] (hbot: has_bot T):
         bot_order T := {
             bot := unexists hbot,
             bot_le := unexists_prop hbot,
@@ -494,7 +502,7 @@ namespace posets
             apply bot_le,
         end
 
-    noncomputable instance bounded_below.bot_of_bounded_univ {T: Sort _} [hT: partial_order T] [hs: bounded_below {x: T | true}]:
+    noncomputable theorem bounded_below.bot_of_bounded_univ {T: Sort _} [hT: partial_order T] [hs: bounded_below {x: T | true}]:
         bot_order T := begin
             split,
             show T, from unexists hs.elim,
