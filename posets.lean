@@ -415,7 +415,7 @@ namespace posets
             apply bot_le,
         end
 
-    theorem monotone.cod_bot_of_sur {T T': Sort _} [hT: bot_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
+    def monotone.cod_bot_of_sur {T T': Sort _} [hT: bot_order T] [hT': partial_order T'] (f: T → T') [hfm: monotone f] [hfs: surjective f]:
         bot_order T' := begin
             split,
             show T', from f bot,
@@ -469,7 +469,7 @@ namespace posets
         ∀ x: T,
         bot ≤ x
 
-    noncomputable theorem has_bot.bot_order {T: Sort _} [hT: partial_order T] (hbot: has_bot T):
+    noncomputable def has_bot.bot_order {T: Sort _} [hT: partial_order T] (hbot: has_bot T):
         bot_order T := {
             bot := unexists hbot,
             bot_le := unexists_prop hbot,
@@ -502,7 +502,7 @@ namespace posets
             apply bot_le,
         end
 
-    noncomputable theorem bounded_below.bot_of_bounded_univ {T: Sort _} [hT: partial_order T] [hs: bounded_below {x: T | true}]:
+    noncomputable def bounded_below.bot_of_bounded_univ {T: Sort _} [hT: partial_order T] [hs: bounded_below {x: T | true}]:
         bot_order T := begin
             split,
             show T, from unexists hs.elim,
@@ -533,4 +533,31 @@ namespace posets
         x ≤ s →
         x ≤ inf s :=
             (unexists_prop (glb_prop.has_glb s)).2
+
+
+    -- order inversion:
+    def invert_order (T: Sort _) [hT: partial_order T]:
+        partial_order T := {
+            le := λ x y: T, y ≤ x,
+            le_refl := begin
+                intros,
+                apply hT.le_refl,
+            end,
+            le_trans := begin
+                intros,
+                apply hT.le_trans;
+                assumption,
+            end,
+            le_antisymm := begin
+                intros,
+                apply hT.le_antisymm;
+                assumption,
+            end,
+        }
+
+    class monotone.decreasing {T T': Sort _} [hT: partial_order T] [hT': partial_order T'] (f: T → T'): Prop :=
+        (elim:
+            ∀ {x y: T},
+            x ≤ y →
+            f y ≤ f x)
 end posets
