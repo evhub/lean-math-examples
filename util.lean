@@ -1,7 +1,6 @@
 namespace util
     open function nat
     open classical (em prop_decidable)
-    open classical (renaming some → unexists) (renaming some_spec → unexists_prop)
     local attribute [instance] prop_decidable
 
     -- nat:
@@ -107,97 +106,6 @@ namespace util
         surjective f := hf.2
 
 
-    -- inverses:
-    class invertible {T T': Sort _} (f: T → T') :=
-        (g: T' → T)
-        (elim:
-            ∀ x: T,
-            g (f x) = x)
-
-    @[reducible, inline] def inv {T T': Sort _} (f: T → T') [hf: invertible f]:
-        T' → T := hf.g
-
-    @[simp] theorem inv.elim {T T': Sort _} (f: T → T') [hf: invertible f]:
-        ∀ x: T,
-        inv f (f x) = x := by apply hf.elim
-
-    instance inv.invertible {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
-        invertible (inv f) := begin
-            split,
-            show T → T', from f,
-            intro x,
-            apply exists.elim (hfsur x),
-            intros y hy,
-            rw [←hy],
-            simp,
-        end
-
-    @[simp] theorem inv.elim_of_inv {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
-        inv (inv f) = f := by rw [inv.invertible]
-
-    theorem inv.uniq {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
-        ∀ {g: T' → T},
-        (∀ x: T, g (f x) = x) →
-        g = inv f := begin
-            intros g hg,
-            funext,
-            have hfsurx := hfsur x,
-            apply exists.elim hfsurx,
-            intros y hy,
-            rw [←hy, hg y],
-            rw [inv, hfinv.elim],
-        end
-
-    instance inv.surjective {T T': Sort _} (f: T → T') [hf: invertible f]:
-        surjective (inv f) := begin
-            intro x,
-            apply exists.intro (f x),
-            simp,
-        end
-
-    instance inv.injective {T T': Sort _} (f: T → T') [hfinv: invertible f] [hfsur: surjective f]:
-        injective (inv f) := begin
-            intros x y hxy,
-            have hfx := hfsur x,
-            have hfy := hfsur y,
-            apply exists.elim hfx,
-            intros a ha,
-            apply exists.elim hfy,
-            intros b hb,
-            rw [←ha, ←hb] at *,
-            simp at hxy,
-            rw [hxy],
-        end
-
-    noncomputable def inj_inv {T T': Sort _} [hT: nonempty T] (f: T → T') (y: T'): T :=
-        if h: ∃ x: T, f x = y then
-            unexists h
-        else
-            choice hT
-
-    noncomputable instance inj_inv.inv_of_inj{T T': Sort _} [hT: nonempty T] (f: T → T') [hf: injective f]:
-        invertible f := {
-            g := inj_inv f,
-            elim := begin
-                intros,
-                rw [inj_inv],
-                cases em (∃ (x' : T), f x' = f x),
-                case or.inl {
-                    rw [dif_pos h],
-                    apply hf,
-                    exact unexists_prop h,
-                },
-                case or.inr {
-                    rw [dif_neg h],
-                    apply false.elim,
-                    apply h,
-                    apply exists.intro x,
-                    refl,
-                },
-            end,
-        }
-
-
     -- id:
     instance id.bijective {T: Sort _}:
         bijective (@id T) := begin
@@ -212,14 +120,6 @@ namespace util
                 apply exists.intro x,
                 simp,
             },
-        end
-
-    instance id.invertible {T: Sort _}:
-        invertible (@id T) := begin
-            split,
-            show T → T, from id,
-            intro x,
-            simp,
         end
 
 
