@@ -2,10 +2,34 @@ namespace ctx
     @[inline, reducible] def pipe {A B: Sort _} (a: A) (f: A → B): B := f a
     infix ` ↦ `:50 := pipe
 
-    def of {A B X: Sort _} (f: A → B): A → (B → X) → X :=
+    def of {A X: Sort _} (a: A): (A → X) → X :=
+        λ xa: A → X,
+        xa a
+
+    def of_func {A B X: Sort _} (f: A → B): A → (B → X) → X :=
         λ a: A,
         λ ctx: B → X,
         a ↦ f ↦ ctx
+
+    def uncurry {A B X: Sort _} (fx: ((A → B) → X) → X): A → (B → X) → X :=
+        begin
+            intros a xb,
+            apply fx,
+            intro f,
+            apply xb,
+            apply f,
+            exact a,
+        end
+
+    def curry.of_dne {A B C X: Sort _} (bdne: ((B → X) → X) → C) (fx: A → (B → X) → X): ((A → C) → X) → X :=
+        begin
+            intro xf,
+            apply xf,
+            intro a,
+            let bxx: (B → X) → X := fx a,
+            apply bdne,
+            exact bxx,
+        end
 
     def dne {A X: Sort _} (xxa: (A → X) → X) (ctx: A → X): X :=
         xxa ctx
@@ -31,10 +55,10 @@ namespace ctx
         begin
             apply ctx,
             apply or.inr,
-            intro,
+            intro a,
             apply ctx,
             apply or.inl,
-            assumption,
+            exact a,
         end
 
     theorem lem.of_prop {X: Sort _} {P: Prop} (ctx: P ∨ (P → X) → X): X :=
@@ -44,15 +68,15 @@ namespace ctx
             intro p,
             apply ctx,
             left,
-            assumption,
+            exact p,
         end
 
     def of_not {A X: Sort _} (na: A → false): A → X :=
         begin
-            intros,
+            intro a,
             apply false.elim,
             apply na,
-            assumption,
+            exact a,
         end
 
     theorem of_not.of_prop {X: Sort _} {P: Prop} (np: ¬P): P → X :=
