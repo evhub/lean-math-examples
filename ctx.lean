@@ -7,24 +7,14 @@ namespace ctx
         λ ctx: B → X,
         a ↦ f ↦ ctx
 
-    def dne {A X: Sort _} (nna: (A → X) → X) (ctx: A → X): X :=
-        nna ctx
+    def dne {A X: Sort _} (xxa: (A → X) → X) (ctx: A → X): X :=
+        xxa ctx
 
     inductive or (A: Sort _) (B: Sort _)
     | inl (a: A) : or
     | inr (b: B) : or
 
-    def lem {A X: Sort _} (ctx: (or A (A → X)) → X): X :=
-        begin
-            apply ctx,
-            apply or.inr,
-            intro,
-            apply ctx,
-            apply or.inl,
-            assumption,
-        end
-
-    def of_sum {A B: Sort _} (ab: A ⊕ B): or A B :=
+    def or.of_sum {A B: Sort _} (ab: A ⊕ B): or A B :=
         begin
             cases ab,
             case sum.inl {
@@ -37,11 +27,59 @@ namespace ctx
             },
         end
 
-    def of_neg {A X: Sort _} (na: A → false): A → X :=
+    def lem {A X: Sort _} (ctx: (or A (A → X)) → X): X :=
+        begin
+            apply ctx,
+            apply or.inr,
+            intro,
+            apply ctx,
+            apply or.inl,
+            assumption,
+        end
+
+    theorem lem.of_prop {X: Sort _} {P: Prop} (ctx: P ∨ (P → X) → X): X :=
+        begin
+            apply ctx,
+            right,
+            intro p,
+            apply ctx,
+            left,
+            assumption,
+        end
+
+    def of_not {A X: Sort _} (na: A → false): A → X :=
         begin
             intros,
             apply false.elim,
             apply na,
             assumption,
         end
+
+    theorem of_not.of_prop {X: Sort _} {P: Prop} (np: ¬P): P → X :=
+        of_not np
+
+    def inner_to_not {A X: Sort _} (xxa: (A → X) → X): (A → false) → X :=
+        λ na: A → false,
+        let f: A → X := of_not na in
+        xxa f
+
+    theorem inner_to_not.of_prop {X: Sort _} {P: Prop} (xxp: (P → X) → X): ¬P → X :=
+        inner_to_not xxp
+
+    namespace fixed_output
+        constant X: Sort _
+        axiom to_not {A: Sort _}: (A → X) → (A → false)
+
+        theorem to_not.of_prop {P: Prop} (xp: P → X): ¬P :=
+            to_not xp
+
+        def to_double_neg {A: Sort _} (xxa: (A → X) → X): (A → false) → false :=
+            xxa ↦ inner_to_not ↦ to_not
+
+        noncomputable def of_double_neg {A: Sort _} (nna: (A → false) → false): (A → X) → X :=
+            λ xa: A → X,
+            let na: A → false := to_not xa in
+            let bot: false := nna na in
+            false.elim bot
+    end fixed_output
 end ctx
