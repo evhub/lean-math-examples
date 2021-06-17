@@ -2,14 +2,10 @@ namespace ctx
     @[inline, reducible] def pipe {A B: Sort _} (a: A) (f: A → B): B := f a
     infix ` ↦ `:50 := pipe
 
+    -- converting to continuation passing style
     def of {A X: Sort _} (a: A): (A → X) → X :=
         λ xa: A → X,
         xa a
-
-    def of_func {A B X: Sort _} (f: A → B): A → (B → X) → X :=
-        λ a: A,
-        λ ctx: B → X,
-        a ↦ f ↦ ctx
 
     def uncurry {A B X: Sort _} (fx: ((A → B) → X) → X): A → (B → X) → X :=
         begin
@@ -21,6 +17,9 @@ namespace ctx
             exact a,
         end
 
+    def of_func {A B X: Sort _} (f: A → B): A → (B → X) → X :=
+        uncurry (of f)
+
     def curry.of_dne {A B C X: Sort _} (bdne: ((B → X) → X) → C) (fx: A → (B → X) → X): ((A → C) → X) → X :=
         begin
             intro xf,
@@ -31,37 +30,24 @@ namespace ctx
             exact bxx,
         end
 
+    -- classical logic equivalents in ctx style
     def dne {A X: Sort _} (xxa: (A → X) → X) (ctx: A → X): X :=
         xxa ctx
 
-    inductive or (A: Sort _) (B: Sort _)
-    | inl (a: A) : or
-    | inr (b: B) : or
+    theorem dne.of_prop {X: Sort _} {P: Prop} (xxp: (P → X) → X) (ctx: P → X): X :=
+        dne xxp ctx
 
-    def or.of_sum {A B: Sort _} (ab: A ⊕ B): or A B :=
-        begin
-            cases ab,
-            case sum.inl {
-                apply or.inl,
-                assumption,
-            },
-            case sum.inr {
-                apply or.inr,
-                assumption,
-            },
-        end
-
-    def lem {A X: Sort _} (ctx: (or A (A → X)) → X): X :=
+    def lem.of_sum {A X: Type _} (ctx: A ⊕ (A → X) → X): X :=
         begin
             apply ctx,
-            apply or.inr,
+            apply sum.inr,
             intro a,
             apply ctx,
-            apply or.inl,
+            apply sum.inl,
             exact a,
         end
 
-    theorem lem.of_prop {X: Sort _} {P: Prop} (ctx: P ∨ (P → X) → X): X :=
+    theorem lem.of_or {X: Sort _} {P: Prop} (ctx: P ∨ (P → X) → X): X :=
         begin
             apply ctx,
             right,
@@ -71,7 +57,8 @@ namespace ctx
             exact p,
         end
 
-    def of_not {A X: Sort _} (na: A → false): A → X :=
+    -- conversion between functions to X and ¬X
+    def of_not {A X: Sort _} (na: ¬A): A → X :=
         begin
             intro a,
             apply false.elim,
@@ -82,7 +69,7 @@ namespace ctx
     theorem of_not.of_prop {X: Sort _} {P: Prop} (np: ¬P): P → X :=
         of_not np
 
-    def inner_to_not {A X: Sort _} (xxa: (A → X) → X): (A → false) → X :=
+    def inner_to_not {A X: Sort _} (xxa: (A → X) → X): ¬A → X :=
         λ na: A → false,
         let f: A → X := of_not na in
         xxa f
@@ -90,17 +77,21 @@ namespace ctx
     theorem inner_to_not.of_prop {X: Sort _} {P: Prop} (xxp: (P → X) → X): ¬P → X :=
         inner_to_not xxp
 
+    -- we get more power if we use a fixed return value X and assume (A → X) → ¬A
     namespace fixed_output
         constant X: Sort _
-        axiom to_not {A: Sort _}: (A → X) → (A → false)
+        axiom to_not {A: Sort _}: (A → X) → ¬A
 
         theorem to_not.of_prop {P: Prop} (xp: P → X): ¬P :=
             to_not xp
 
-        def to_double_neg {A: Sort _} (xxa: (A → X) → X): (A → false) → false :=
+        def to_double_neg {A: Sort _} (xxa: (A → X) → X): ¬¬A :=
             xxa ↦ inner_to_not ↦ to_not
 
-        noncomputable def of_double_neg {A: Sort _} (nna: (A → false) → false): (A → X) → X :=
+        noncomputable def curry {A B: Sort _} (fx: A → (B → X) → X): ((A → ¬¬B) → X) → X :=
+            curry.of_dne to_double_neg fx
+
+        noncomputable def of_double_neg {A: Sort _} (nna: ¬¬A): (A → X) → X :=
             λ xa: A → X,
             let na: A → false := to_not xa in
             let bot: false := nna na in
